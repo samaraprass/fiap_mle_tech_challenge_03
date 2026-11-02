@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-11-01 23:44:20",
+    "environment": "Local CPU (Python 3.12, FastAPI TestClient / Uvicorn)",
+    "total_requests": 300,
+    "successful_requests": 300,
+    "error_rate_pct": 0.0,
+    "total_benchmark_time_s": 1.148,
+    "throughput_rps": 261.27,
+    "latency_metrics_ms": {
+        "mean": 3.676,
+        "std": 1.285,
+        "min": 2.164,
+        "p50_median": 3.444,
+        "p90": 4.708,
+        "p95": 5.28,
+        "p99": 8.349,
+        "max": 13.916
+    }
+}
+

@@ -149,13 +149,19 @@ A arquitetura hospitalar adota um padrão híbrido (**dual-path**):
 │   ├── __init__.py
 │   └── api/                # Serviço REST com FastAPI
 │       ├── __init__.py
-│       └── main.py
-├── tests/                  # Testes automatizados com pytest
+│       ├── config.py       # Configurações de ambiente e aplicação
+│       ├── model.py        # Serviço desacoplado de inferência
+│       ├── schemas.py      # Schemas Pydantic de entrada e saída
+│       └── main.py         # Endpoints FastAPI e ciclo de vida
+├── tests/                  # Testes automatizados e benchmarks
 │   ├── __init__.py
-│   └── test_api.py
+│   ├── benchmark_latency.py # Script de medição de latência local
+│   ├── latency_baseline.json# Registro das métricas de latência
+│   └── test_api.py         # Testes de integração dos endpoints
+├── .dockerignore           # Exclusão de arquivos pesados na imagem
 ├── .gitignore
 ├── config.yaml             # Configurações gerais da aplicação
-├── Dockerfile              # Empacotamento Docker da API
+├── Dockerfile              # Empacotamento Docker da API (não-root)
 ├── requirements.txt        # Dependências do projeto
 └── README.md               # Documentação técnica e arquitetural
 ```
@@ -192,13 +198,66 @@ pip install -r requirements.txt
 jupyter notebook notebooks/eda.ipynb
 ```
 
+### 4.4. Executando a API FastAPI Localmente
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+```
+Acesse a documentação interativa OpenAPI (Swagger) em: [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 4.5. Executando os Testes Automatizados
+```bash
+python -m unittest tests/test_api.py -v
+```
+
+### 4.6. Medindo o Baseline de Latência Local
+```bash
+python tests/benchmark_latency.py --requests 300
+```
+
+### 4.7. Construção e Execução via Docker
+```bash
+# Construir a imagem Docker leve da API
+docker build -t medical-triage-api:v1 .
+
+# Executar o container expondo a porta 8000
+docker run -d -p 8000:8000 --name triage-api medical-triage-api:v1
+
+# Testar o status de saúde do container
+curl http://localhost:8000/health
+
+# Testar inferência via container
+curl -X POST http://localhost:8000/predict \
+     -H "Content-Type: application/json" \
+     -d '{"medical_abstract": "Patient admitted with severe chest pain, elevated cardiac enzymes and ST-segment elevation on ECG confirming acute myocardial infarction."}'
+```
+
 ---
 
-## 5. Roadmap de Entregas (Tech Challenge)
+## 5. Baseline de Latência e Performance Local (Etapa 1)
+
+Medição realizada sobre 300 requisições individuais com amostras reais do conjunto de teste (`medical_tc_test.csv`):
+
+| Métrica de Performance | Valor Medido | Observações |
+| :--- | :---: | :--- |
+| **Total de Requisições** | 300 | Amostras variadas de laudos clínicos |
+| **Taxa de Sucesso / Erro** | 100% / 0.0% | Sem quedas ou exceções durante o benchmark |
+| **Throughput Médio** | **261.27 req/s** | Capacidade de resposta em thread síncrona local |
+| **Latência Média** | **3.68 ms** | Tempo total de ciclo (rede local + parsing + inferência) |
+| **Latência P50 (Mediana)** | **3.44 ms** | Tempo de resposta para 50% dos laudos |
+| **Latência P90** | **4.71 ms** | Percentil 90 |
+| **Latência P95** | **5.28 ms** | Percentil 95 (referência para SLO hospitalar) |
+| **Latência P99** | **8.35 ms** | Percentil 99 |
+| **Latência Mínima / Máxima**| 2.16 ms / 13.92 ms | Sem spikes representativos de cold start |
+
+> As métricas consolidadas foram persistidas em formato JSON em [`tests/latency_baseline.json`](tests/latency_baseline.json) para servir de comparativo na otimização com ONNX (Etapa 4).
+
+---
+
+## 6. Roadmap de Entregas (Tech Challenge)
 
 - [x] **Análise Exploratória e Modelagem:** EDA completa, limpeza de jargão clínico, balanceamento de classes e serialização do modelo base leve.
 - [x] **Decisão Arquitetural em Nuvem:** Documentação detalhada para GCP (Batch vs. Real-time) no `README.md`.
-- [ ] **Etapa 1 - API Inicial e Docker:** Criação da API FastAPI (`src/api/main.py`), `Dockerfile` e medição do baseline de latência local.
+- [x] **Etapa 1 - API Inicial e Docker:** Criação da API FastAPI modular (`src/api/`), `Dockerfile` com boas práticas de segurança (não-root) e medição do baseline de latência local.
 - [ ] **Etapa 2 - CI/CD e Orquestração:** Pipeline de automação no GitHub Actions e DAG do Apache Airflow para treino/retreino.
 - [ ] **Etapa 3 - Observabilidade:** Instrumentação de métricas com `prometheus-client`, Docker Compose e Dashboard no Grafana.
 - [ ] **Etapa 4 - Otimização de Latência:** Conversão do modelo para **ONNX Runtime**, comparação de latência original vs. otimizada e gravação do vídeo STAR.

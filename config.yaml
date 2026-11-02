@@ -1,0 +1,12 @@
+app:
+  title: "Medical Triage API"
+  version: "1.0.0"
+  description: "API de triagem automatizada de laudos médicos com NLP para suporte à decisão clínica hospitalar"
+  host: "0.0.0.0"
+  port: 8000
+  log_level: "INFO"
+
+model:
+  model_path: "models/baseline_model.joblib"
+  metadata_path: "models/classes_mapping.json"
+

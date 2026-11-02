@@ -1,7 +1,11 @@
 import os
 from pathlib import Path
-import yaml
 from pydantic import BaseModel
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 # Root directory of the repository
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
@@ -22,7 +26,7 @@ class Settings:
     def __init__(self):
         config_path = ROOT_DIR / "config.yaml"
         config_data = {}
-        if config_path.exists():
+        if config_path.exists() and yaml is not None:
             try:
                 with open(config_path, "r", encoding="utf-8") as f:
                     config_data = yaml.safe_load(f) or {}

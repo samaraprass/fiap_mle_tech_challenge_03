@@ -20,4 +20,5 @@ prometheus-client>=0.17.0
 # Testing & Quality
 pytest>=7.4.0
 httpx>=0.24.0
+flake8>=6.0.0
 

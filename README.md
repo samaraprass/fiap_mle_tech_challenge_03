@@ -135,6 +135,9 @@ A arquitetura hospitalar adota um padrão híbrido (**dual-path**):
 ```text
 ├── .github/
 │   └── workflows/          # Workflows CI/CD (lint, testes, build)
+│       └── ci.yml
+├── dags/                   # DAGs do Apache Airflow
+│   └── medical_retrain_dag.py # Pipeline de ingestão, retreino e promoção
 ├── docs/                   # Documentação complementar e diagramas
 ├── models/
 │   ├── baseline_model.joblib  # Pipeline treinado (TF-IDF + Classificador)
@@ -147,16 +150,20 @@ A arquitetura hospitalar adota um padrão híbrido (**dual-path**):
 │   └── medical_tc_test.csv    # Dataset de teste (2.888 amostras)
 ├── src/
 │   ├── __init__.py
-│   └── api/                # Serviço REST com FastAPI
+│   ├── api/                # Serviço REST com FastAPI
+│   │   ├── __init__.py
+│   │   ├── config.py       # Configurações de ambiente e aplicação
+│   │   ├── model.py        # Serviço desacoplado de inferência
+│   │   ├── schemas.py      # Schemas Pydantic de entrada e saída
+│   │   └── main.py         # Endpoints FastAPI e ciclo de vida
+│   └── pipelines/          # Módulos de engenharia de dados e retreino
 │       ├── __init__.py
-│       ├── config.py       # Configurações de ambiente e aplicação
-│       ├── model.py        # Serviço desacoplado de inferência
-│       ├── schemas.py      # Schemas Pydantic de entrada e saída
-│       └── main.py         # Endpoints FastAPI e ciclo de vida
+│       └── training_pipeline.py # Funções desacopladas do pipeline de ML
 ├── tests/                  # Testes automatizados e benchmarks
 │   ├── __init__.py
 │   ├── benchmark_latency.py # Script de medição de latência local
 │   ├── latency_baseline.json# Registro das métricas de latência
+│   ├── test_airflow_dag.py  # Teste end-to-end do pipeline da DAG
 │   └── test_api.py         # Testes de integração dos endpoints
 ├── .dockerignore           # Exclusão de arquivos pesados na imagem
 ├── .gitignore
@@ -206,7 +213,12 @@ Acesse a documentação interativa OpenAPI (Swagger) em: [http://localhost:8000/
 
 ### 4.5. Executando os Testes Automatizados
 ```bash
+# Executa todos os testes (API e pipeline da DAG)
+pytest tests/ -v
+
+# Ou via unittest
 python -m unittest tests/test_api.py -v
+python -m unittest tests/test_airflow_dag.py -v
 ```
 
 ### 4.6. Medindo o Baseline de Latência Local
@@ -269,7 +281,7 @@ Medição realizada sobre 300 requisições individuais com amostras reais do co
 - [x] **Análise Exploratória e Modelagem:** EDA completa, limpeza de jargão clínico, balanceamento de classes e serialização do modelo base leve.
 - [x] **Decisão Arquitetural em Nuvem:** Documentação detalhada para GCP (Batch vs. Real-time) no `README.md`.
 - [x] **Etapa 1 - API Inicial e Docker:** Criação da API FastAPI modular (`src/api/`), `Dockerfile` com boas práticas de segurança (não-root) e medição do baseline de latência local.
-- [ ] **Etapa 2 - CI/CD e Orquestração:** Pipeline de automação no GitHub Actions e DAG do Apache Airflow para treino/retreino.
+- [x] **Etapa 2 - CI/CD e Orquestração:** Pipeline de automação no GitHub Actions (`.github/workflows/ci.yml`) com lint e testes, e DAG do Apache Airflow (`dags/medical_retrain_dag.py`) com pipeline modular (`src/pipelines/training_pipeline.py`).
 - [ ] **Etapa 3 - Observabilidade:** Instrumentação de métricas com `prometheus-client`, Docker Compose e Dashboard no Grafana.
 - [ ] **Etapa 4 - Otimização de Latência:** Conversão do modelo para **ONNX Runtime**, comparação de latência original vs. otimizada e gravação do vídeo STAR.
 

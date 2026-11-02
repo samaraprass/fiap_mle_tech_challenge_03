@@ -223,9 +223,20 @@ docker build -t medical-triage-api:v1 .
 docker run -d -p 8000:8000 --name triage-api medical-triage-api:v1
 
 # Testar o status de saúde do container
+# Linux/Mac (Bash):
 curl http://localhost:8000/health
+# Windows (PowerShell):
+Invoke-RestMethod http://localhost:8000/health
 
 # Testar inferência via container
+# Opção A: Windows PowerShell (Nativo)
+$body = @{
+    medical_abstract = "Patient admitted with severe chest pain, elevated cardiac enzymes and ST-segment elevation on ECG confirming acute myocardial infarction."
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post -Body $body -ContentType "application/json"
+
+# Opção B: Linux/Mac (Bash / cURL)
 curl -X POST http://localhost:8000/predict \
      -H "Content-Type: application/json" \
      -d '{"medical_abstract": "Patient admitted with severe chest pain, elevated cardiac enzymes and ST-segment elevation on ECG confirming acute myocardial infarction."}'

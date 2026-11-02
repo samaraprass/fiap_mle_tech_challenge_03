@@ -20,7 +20,7 @@ class TestMedicalApi(unittest.TestCase):
 
     def test_root_endpoint(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 999)
         data = response.json()
         self.assertIn("app", data)
         self.assertEqual(data["status"], "online")

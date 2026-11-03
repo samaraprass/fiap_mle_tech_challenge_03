@@ -26,12 +26,17 @@ class TestMedicalApi(unittest.TestCase):
         self.assertEqual(data["status"], "online")
 
     def test_health_endpoint(self):
+        import json
+        mapping_path = Path(__file__).resolve().parent.parent / "models" / "classes_mapping.json"
+        with open(mapping_path, "r", encoding="utf-8") as f:
+            expected_version = json.load(f).get("version", "1.0.0")
+
         response = self.client.get("/health")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["status"], "healthy")
         self.assertTrue(data["model_loaded"])
-        self.assertEqual(data["model_version"], "1.1.0")
+        self.assertEqual(data["model_version"], expected_version)
         self.assertIn("timestamp", data)
 
     def test_predict_cardiovascular(self):

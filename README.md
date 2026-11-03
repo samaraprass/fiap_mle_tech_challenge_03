@@ -283,9 +283,18 @@ python tests/generate_traffic.py
 # - Grafana UI:     http://localhost:3000 (Login: admin / Senha: admin)
 ```
 
+#### Evidências Visuais de Execução
+Abaixo estão os registros visuais das ferramentas em execução durante a validação da solução:
+
+**1. Dashboard de Monitoramento no Grafana (Etapa 3):**
+![Dashboard de Monitoramento no Grafana](docs/grafana_dashboard.png)
+
+**2. Pipeline de Retreino no Apache Airflow (Etapa 2):**
+![Pipeline de Retreino no Apache Airflow](docs/airflow_dag_success.png)
+
 ---
 
-## 5. Baseline de Latência e Performance Local (Etapa 1)
+## 5. Baseline de Latência Local (Etapa 1)
 
 Medição realizada sobre 300 requisições individuais com amostras reais do conjunto de teste (`medical_tc_test.csv`):
 
@@ -301,16 +310,58 @@ Medição realizada sobre 300 requisições individuais com amostras reais do co
 | **Latência P99** | **8.35 ms** | Percentil 99 |
 | **Latência Mínima / Máxima**| 2.16 ms / 13.92 ms | Sem spikes representativos de cold start |
 
-> As métricas consolidadas foram persistidas em formato JSON em [`tests/latency_baseline.json`](tests/latency_baseline.json) para servir de comparativo na otimização com ONNX (Etapa 4).
+---
+
+## 6. Otimização de Latência: Scikit-Learn vs. ONNX Runtime (Etapa 4)
+
+Conforme a **Etapa 4**, o classificador de texto foi exportado para o formato padrão da indústria **ONNX** (`models/model_optimized.onnx`) e executado através do runtime compilado em C++ **ONNX Runtime (CPUExecutionProvider)**.
+
+O benchmark comparativo oficial avaliou **500 laudos clínicos reais** sob as mesmas condições de CPU:
+
+| Métrica de Desempenho | Scikit-Learn (Original) | ONNX Runtime (Otimizado) | Melhoria Alcançada |
+| :--- | :---: | :---: | :---: |
+| **Latência Média** | **2.912 ms** | **0.402 ms** | **7.24x mais rápido (-86.2%)** |
+| **Latência Mediana (P50)**| **2.895 ms** | **0.418 ms** | **6.93x mais rápido (-85.6%)** |
+| **Latência P90** | **3.787 ms** | **0.513 ms** | **7.38x mais rápido (-86.5%)** |
+| **Latência P95 (SLO)** | **4.010 ms** | **0.598 ms** | **6.71x mais rápido (-85.1%)** |
+| **Latência P99** | **4.370 ms** | **0.739 ms** | **5.91x mais rápido (-83.1%)** |
+| **Throughput Máximo** | **342.7 req/s** | **2.467.4 req/s** | **+2.124 req/s (+620%)** |
+| **Paridade de Predição** | Referência | **100.0%** | Sem perda de acurácia clínica |
+
+> Os dados brutos do benchmark comparativo estão documentados em [`docs/latency_comparison.json`](docs/latency_comparison.json).
+
+### Como Reproduzir a Otimização e o Benchmark:
+```bash
+# 1. Exportar o modelo para ONNX
+python src/optimization/onnx_converter.py
+
+# 2. Executar o benchmark comparativo oficial
+python scripts/benchmark_comparison.py
+
+# 3. Executar os testes de validação do ONNX
+python -m unittest tests/test_onnx.py -v
+```
 
 ---
 
-## 6. Roadmap de Entregas (Tech Challenge)
+## 7. Roteiro do Vídeo de Apresentação (Método STAR)
+
+O roteiro oficial estruturado para o vídeo de até 5 minutos está disponível em:  
+👉 [**`docs/roteiro_video_star.md`**](docs/roteiro_video_star.md)
+
+* **Situation (1 min):** Desafio clínico da triagem rápida de laudos em emergências hospitalares.
+* **Task (1 min):** Requisitos técnicos (CI/CD, Airflow, Docker, Prometheus/Grafana, ONNX).
+* **Action (2 min):** Demonstração da API, testes no GitHub Actions, DAG do Airflow e Dashboard no Grafana.
+* **Result (1 min):** Apresentação dos resultados e ganho de 7.24x de velocidade com ONNX Runtime.
+
+---
+
+## 8. Roadmap de Entregas (Tech Challenge - 100% Concluído)
 
 - [x] **Análise Exploratória e Modelagem:** EDA completa, limpeza de jargão clínico, balanceamento de classes e serialização do modelo base leve.
 - [x] **Decisão Arquitetural em Nuvem:** Documentação detalhada para GCP (Batch vs. Real-time) no `README.md`.
 - [x] **Etapa 1 - API Inicial e Docker:** Criação da API FastAPI modular (`src/api/`), `Dockerfile` com boas práticas de segurança (não-root) e medição do baseline de latência local.
 - [x] **Etapa 2 - CI/CD e Orquestração:** Pipeline de automação no GitHub Actions (`.github/workflows/ci.yml`) com lint e testes, e DAG do Apache Airflow (`dags/medical_retrain_dag.py`) com pipeline modular (`src/pipelines/training_pipeline.py`).
 - [x] **Etapa 3 - Observabilidade:** Instrumentação de métricas com `prometheus-client` (`/metrics`), Docker Compose unificando API + Prometheus + Grafana, e Dashboard provisionado com os 3 painéis obrigatórios (Requisições, Latência e Taxa de Erro).
-- [ ] **Etapa 4 - Otimização de Latência:** Conversão do modelo para **ONNX Runtime**, comparação de latência original vs. otimizada e gravação do vídeo STAR.
+- [x] **Etapa 4 - Otimização de Latência:** Conversão do modelo para **ONNX Runtime** (`models/model_optimized.onnx`), ganho de 7.24x de velocidade demonstrado e roteiro estruturado para o vídeo STAR (`docs/roteiro_video_star.md`).
 

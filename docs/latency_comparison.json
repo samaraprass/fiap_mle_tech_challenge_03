@@ -1,0 +1,27 @@
+{
+    "timestamp": "2026-11-02 23:32:08",
+    "benchmark_samples": 500,
+    "parity_accuracy_pct": 100.0,
+    "speedup_factor": 7.24,
+    "latency_reduction_pct": 86.18,
+    "scikit_learn": {
+        "mean_ms": 2.9115,
+        "p50_median_ms": 2.8948,
+        "p90_ms": 3.7865,
+        "p95_ms": 4.0104,
+        "p99_ms": 4.3702,
+        "min_ms": 1.5336,
+        "max_ms": 5.3769,
+        "throughput_rps": 342.7
+    },
+    "onnx_runtime": {
+        "mean_ms": 0.4023,
+        "p50_median_ms": 0.4183,
+        "p90_ms": 0.5128,
+        "p95_ms": 0.5979,
+        "p99_ms": 0.7394,
+        "min_ms": 0.19,
+        "max_ms": 1.6634,
+        "throughput_rps": 2467.4
+    }
+}

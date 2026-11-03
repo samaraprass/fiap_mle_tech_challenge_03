@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 
 from src.api.config import settings
@@ -85,6 +85,7 @@ async def health():
         version=settings.app.version,
         model_loaded=is_ready,
         model_version=classifier_service.model_version if is_ready else None,
+        onnx_loaded=classifier_service.is_onnx_ready(),
         timestamp=datetime.now(timezone.utc).isoformat()
     )
 
@@ -103,7 +104,10 @@ async def metrics():
     tags=["Inferência"],
     summary="Triagem e classificação de um laudo médico individual"
 )
-async def predict(payload: PredictionRequest):
+async def predict(
+    payload: PredictionRequest,
+    engine: str = Query("sklearn", description="Motor de inferência: 'sklearn' (padrão) ou 'onnx' (otimizado)")
+):
     """Recebe o texto de um laudo médico (`medical_abstract`) e retorna a patologia clínica prevista com grau de confiança."""
     if not classifier_service.is_ready():
         raise HTTPException(
@@ -112,14 +116,50 @@ async def predict(payload: PredictionRequest):
         )
 
     try:
-        result = classifier_service.predict(payload.medical_abstract)
+        if engine.lower() == "onnx":
+            if not classifier_service.is_onnx_ready():
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Motor ONNX não está carregado ou arquivo models/model_optimized.onnx ausente."
+                )
+            result = classifier_service.predict_onnx(payload.medical_abstract)
+        else:
+            result = classifier_service.predict(payload.medical_abstract)
+
         PREDICTIONS_BY_CLASS_TOTAL.labels(condition_name=result["condition_name"]).inc()
         return PredictionResponse(**result)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Erro durante a predição unitária: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Falha interna ao processar laudo: {str(e)}"
+        )
+
+@app.post(
+    "/predict/onnx",
+    response_model=PredictionResponse,
+    tags=["Inferência Otimizada (ONNX)"],
+    summary="Triagem de laudo com motor ONNX Runtime compilado em C++ (baixa latência)"
+)
+async def predict_onnx(payload: PredictionRequest):
+    """Executa a inferência direta utilizando o grafo ONNX Runtime acelerado em C++."""
+    if not classifier_service.is_onnx_ready():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Motor ONNX não está carregado ou arquivo models/model_optimized.onnx ausente."
+        )
+
+    try:
+        result = classifier_service.predict_onnx(payload.medical_abstract)
+        PREDICTIONS_BY_CLASS_TOTAL.labels(condition_name=result["condition_name"]).inc()
+        return PredictionResponse(**result)
+    except Exception as e:
+        logger.error(f"Erro durante inferência ONNX: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Falha interna no motor ONNX: {str(e)}"
         )
 
 @app.post(

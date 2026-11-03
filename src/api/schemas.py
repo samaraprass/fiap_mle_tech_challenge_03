@@ -6,6 +6,7 @@ class HealthResponse(BaseModel):
     version: str = Field(..., example="1.0.0", description="Versão da API")
     model_loaded: bool = Field(..., example=True, description="Indica se o modelo está carregado em memória")
     model_version: Optional[str] = Field(None, example="1.1.0", description="Versão do modelo carregado")
+    onnx_loaded: Optional[bool] = Field(False, example=True, description="Indica se o runtime otimizado ONNX está disponível")
     timestamp: str = Field(..., description="Timestamp ISO da verificação")
 
 class PredictionRequest(BaseModel):

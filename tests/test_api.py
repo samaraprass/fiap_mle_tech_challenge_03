@@ -110,5 +110,30 @@ class TestMedicalApi(unittest.TestCase):
         self.assertGreater(data["total_time_ms"], 0)
         self.assertEqual(data["predictions"][0]["condition_label"], 4)
 
+    def test_predict_onnx_endpoint(self):
+        payload = {
+            "medical_abstract": (
+                "Patient with acute myocardial infarction, persistent chest pain and ischemic ECG changes."
+            )
+        }
+        response = self.client.post("/predict/onnx", json=payload)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["condition_label"], 4)
+        self.assertEqual(data["condition_name"], "cardiovascular diseases")
+        self.assertIn("inference_time_ms", data)
+
+    def test_predict_with_onnx_query_param(self):
+        payload = {
+            "medical_abstract": (
+                "Patient with acute myocardial infarction, persistent chest pain and ischemic ECG changes."
+            )
+        }
+        response = self.client.post("/predict?engine=onnx", json=payload)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["condition_label"], 4)
+        self.assertEqual(data["condition_name"], "cardiovascular diseases")
+
 if __name__ == "__main__":
     unittest.main()

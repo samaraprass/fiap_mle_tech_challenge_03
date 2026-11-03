@@ -39,6 +39,13 @@ class TestMedicalApi(unittest.TestCase):
         self.assertEqual(data["model_version"], expected_version)
         self.assertIn("timestamp", data)
 
+    def test_metrics_endpoint(self):
+        response = self.client.get("/metrics")
+        self.assertEqual(response.status_code, 200)
+        content = response.text
+        self.assertIn("http_requests_total", content)
+        self.assertIn("http_request_duration_seconds", content)
+
     def test_predict_cardiovascular(self):
         payload = {
             "medical_abstract": (

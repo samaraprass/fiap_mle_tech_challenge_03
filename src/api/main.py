@@ -7,6 +7,11 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 
 from src.api.config import settings
+from src.api.metrics import (
+    PREDICTIONS_BY_CLASS_TOTAL,
+    get_metrics_response,
+    prometheus_metrics_middleware
+)
 from src.api.model import MedicalClassifierService
 from src.api.schemas import (
     BatchPredictionRequest,
@@ -50,6 +55,9 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Middleware de instrumentação do Prometheus
+app.middleware("http")(prometheus_metrics_middleware)
+
 @app.get("/", tags=["Info"])
 async def root():
     """Endpoint raiz com informações operacionais e atalho para a documentação interativa."""
@@ -80,6 +88,15 @@ async def health():
         timestamp=datetime.now(timezone.utc).isoformat()
     )
 
+@app.get(
+    "/metrics",
+    tags=["Observabilidade"],
+    summary="Endpoint de métricas de telemetria no formato Prometheus"
+)
+async def metrics():
+    """Exporta métricas de latência, requisições HTTP e predições para raspagem do Prometheus."""
+    return get_metrics_response()
+
 @app.post(
     "/predict",
     response_model=PredictionResponse,
@@ -96,6 +113,7 @@ async def predict(payload: PredictionRequest):
 
     try:
         result = classifier_service.predict(payload.medical_abstract)
+        PREDICTIONS_BY_CLASS_TOTAL.labels(condition_name=result["condition_name"]).inc()
         return PredictionResponse(**result)
     except Exception as e:
         logger.error(f"Erro durante a predição unitária: {str(e)}", exc_info=True)
@@ -121,6 +139,8 @@ async def predict_batch(payload: BatchPredictionRequest):
     try:
         texts = [item.medical_abstract for item in payload.items]
         predictions, total_time_ms = classifier_service.predict_batch(texts)
+        for p in predictions:
+            PREDICTIONS_BY_CLASS_TOTAL.labels(condition_name=p["condition_name"]).inc()
         
         response_items = [PredictionResponse(**p) for p in predictions]
         return BatchPredictionResponse(

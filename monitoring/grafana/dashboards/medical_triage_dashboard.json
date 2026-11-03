@@ -1,0 +1,229 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Visão Geral dos Indicadores do Serviço (SLOs Hospitalares)",
+      "type": "row"
+    },
+    {
+      "id": 1,
+      "title": "Total de Requisições Recebidas",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(http_requests_total{endpoint!=\"/metrics\"}) or vector(0)",
+          "refId": "A",
+          "legendFormat": "Total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Taxa de Erro HTTP (%)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "((sum(http_requests_total{status_code=~\"4..|5..\"}) or vector(0)) / (sum(http_requests_total) or vector(1))) * 100",
+          "refId": "A",
+          "legendFormat": "Taxa de Erro"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1.0 },
+              { "color": "red", "value": 5.0 }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 2,
+          "min": 0,
+          "max": 100
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Throughput Médio (Req/s)",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{endpoint!=\"/metrics\"}[1m])) or vector(0)",
+          "refId": "A",
+          "legendFormat": "RPS"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "reqps",
+          "decimals": 2
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Status da API",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "up{job=\"medical-triage-api\"}",
+          "refId": "A",
+          "legendFormat": "UP"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "OFFLINE", "color": "red" },
+                "1": { "text": "ONLINE", "color": "green" }
+              }
+            }
+          ]
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 101,
+      "title": "Latência e Desempenho em Tempo Real (Painel Obrigatório)",
+      "type": "row"
+    },
+    {
+      "id": 5,
+      "title": "Latência de Resposta da API (Milissegundos)",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "(histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/predict\"}[1m])) by (le)) or vector(0)) * 1000",
+          "legendFormat": "P95 Latência",
+          "refId": "P95"
+        },
+        {
+          "expr": "(histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/predict\"}[1m])) by (le)) or vector(0)) * 1000",
+          "legendFormat": "P50 Mediana",
+          "refId": "P50"
+        },
+        {
+          "expr": "((sum(rate(http_request_duration_seconds_sum{endpoint=\"/predict\"}[1m])) / (sum(rate(http_request_duration_seconds_count{endpoint=\"/predict\"}[1m])) or vector(1))) or vector(0)) * 1000",
+          "legendFormat": "Média Latência",
+          "refId": "Avg"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Distribuição de Predições por Patologia Clínica",
+      "type": "piechart",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (condition_name) (medical_predictions_by_class_total)",
+          "legendFormat": "{{condition_name}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["value"] },
+        "pieType": "donut"
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["mlops", "medical-nlp", "fiap", "tech-challenge"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m"]
+  },
+  "timezone": "browser",
+  "title": "Medical Triage API - Monitoramento e Observabilidade",
+  "uid": "medical-triage-overview",
+  "version": 1
+}
+

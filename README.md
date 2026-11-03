@@ -142,6 +142,15 @@ A arquitetura hospitalar adota um padrão híbrido (**dual-path**):
 ├── models/
 │   ├── baseline_model.joblib  # Pipeline treinado (TF-IDF + Classificador)
 │   └── classes_mapping.json   # Metadados e mapeamento de categorias
+├── monitoring/             # Stack de Observabilidade e Métricas
+│   ├── grafana/
+│   │   ├── dashboards/     # Dashboard JSON com os 3 painéis obrigatórios
+│   │   │   └── medical_triage_dashboard.json
+│   │   └── provisioning/   # Configuração automática do datasource e dashboards
+│   │       ├── dashboards/dashboard_provider.yml
+│   │       └── datasources/prometheus_datasource.yml
+│   └── prometheus/
+│       └── prometheus.yml  # Configuração de scraping da API a cada 5s
 ├── notebooks/
 │   └── eda.ipynb           # Análise Exploratória e Modelagem de NLP
 ├── raw_data/
@@ -153,6 +162,7 @@ A arquitetura hospitalar adota um padrão híbrido (**dual-path**):
 │   ├── api/                # Serviço REST com FastAPI
 │   │   ├── __init__.py
 │   │   ├── config.py       # Configurações de ambiente e aplicação
+│   │   ├── metrics.py      # Instrumentação de telemetria Prometheus
 │   │   ├── model.py        # Serviço desacoplado de inferência
 │   │   ├── schemas.py      # Schemas Pydantic de entrada e saída
 │   │   └── main.py         # Endpoints FastAPI e ciclo de vida
@@ -162,12 +172,14 @@ A arquitetura hospitalar adota um padrão híbrido (**dual-path**):
 ├── tests/                  # Testes automatizados e benchmarks
 │   ├── __init__.py
 │   ├── benchmark_latency.py # Script de medição de latência local
+│   ├── generate_traffic.py  # Gerador de tráfego para teste do Grafana
 │   ├── latency_baseline.json# Registro das métricas de latência
 │   ├── test_airflow_dag.py  # Teste end-to-end do pipeline da DAG
 │   └── test_api.py         # Testes de integração dos endpoints
 ├── .dockerignore           # Exclusão de arquivos pesados na imagem
 ├── .gitignore
 ├── config.yaml             # Configurações gerais da aplicação
+├── docker-compose.yml      # Stack completa: API + Prometheus + Grafana
 ├── Dockerfile              # Empacotamento Docker da API (não-root)
 ├── requirements.txt        # Dependências do projeto
 └── README.md               # Documentação técnica e arquitetural
@@ -254,6 +266,23 @@ curl -X POST http://localhost:8000/predict \
      -d '{"medical_abstract": "Patient admitted with severe chest pain, elevated cardiac enzymes and ST-segment elevation on ECG confirming acute myocardial infarction."}'
 ```
 
+### 4.8. Executando a Stack de Observabilidade Completa (API + Prometheus + Grafana)
+A stack oficial da **Etapa 3** sobe a aplicação instrumentada com coleta de métricas e dashboards pré-configurados:
+
+```bash
+# 1. Subir toda a stack em segundo plano
+docker compose up -d
+
+# 2. Gerar requisições clínicas sintéticas para alimentar os gráficos do Grafana
+python tests/generate_traffic.py
+
+# 3. Acessar os serviços no navegador:
+# - API FastAPI:    http://localhost:8000/docs
+# - Métricas raw:   http://localhost:8000/metrics
+# - Prometheus UI:  http://localhost:9090
+# - Grafana UI:     http://localhost:3000 (Login: admin / Senha: admin)
+```
+
 ---
 
 ## 5. Baseline de Latência e Performance Local (Etapa 1)
@@ -282,6 +311,6 @@ Medição realizada sobre 300 requisições individuais com amostras reais do co
 - [x] **Decisão Arquitetural em Nuvem:** Documentação detalhada para GCP (Batch vs. Real-time) no `README.md`.
 - [x] **Etapa 1 - API Inicial e Docker:** Criação da API FastAPI modular (`src/api/`), `Dockerfile` com boas práticas de segurança (não-root) e medição do baseline de latência local.
 - [x] **Etapa 2 - CI/CD e Orquestração:** Pipeline de automação no GitHub Actions (`.github/workflows/ci.yml`) com lint e testes, e DAG do Apache Airflow (`dags/medical_retrain_dag.py`) com pipeline modular (`src/pipelines/training_pipeline.py`).
-- [ ] **Etapa 3 - Observabilidade:** Instrumentação de métricas com `prometheus-client`, Docker Compose e Dashboard no Grafana.
+- [x] **Etapa 3 - Observabilidade:** Instrumentação de métricas com `prometheus-client` (`/metrics`), Docker Compose unificando API + Prometheus + Grafana, e Dashboard provisionado com os 3 painéis obrigatórios (Requisições, Latência e Taxa de Erro).
 - [ ] **Etapa 4 - Otimização de Latência:** Conversão do modelo para **ONNX Runtime**, comparação de latência original vs. otimizada e gravação do vídeo STAR.
 

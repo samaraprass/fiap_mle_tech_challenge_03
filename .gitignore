@@ -22,7 +22,7 @@ venv/
 htmlcov/
 
 # Logs & Temp
-*.log
+*.logs
 scratch/
 .env
 logs/

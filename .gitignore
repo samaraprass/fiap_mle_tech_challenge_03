@@ -24,4 +24,8 @@ htmlcov/
 # Logs & Temp
 *.log
 scratch/
+.env
+logs/
+plugins/
+docker-compose-airflow.yaml
 

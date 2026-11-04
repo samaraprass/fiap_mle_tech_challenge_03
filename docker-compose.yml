@@ -11,6 +11,7 @@ services:
       - "8000:8000"
     volumes:
       - ./models:/app/models:ro
+      - ./src:/app/src:ro
     environment:
       - APP_PORT=8000
       - LOG_LEVEL=INFO
